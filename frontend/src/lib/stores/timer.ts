@@ -83,11 +83,25 @@ function createTimerStore() {
             }
         },
 
-        pause() {
+        async pause() {
+            const currentTimer = get({ subscribe });
+            if (!currentTimer || currentTimer.isPaused) return;
+
+            // Calculate elapsed time
+            const currentElapsed = currentTimer.pausedSeconds + Math.floor((Date.now() - currentTimer.startTime.getTime()) / 1000);
+
+            // Stop the backend timer to persist the time
+            try {
+                await timersAPI.stop(currentTimer.habitId);
+                // Update habit's time in the store
+                habits.addTimeSpent(currentTimer.habitId, currentElapsed - currentTimer.pausedSeconds);
+            } catch (e) {
+                // Even if backend fails, update local state
+                console.error('Failed to persist pause:', e);
+            }
+
             update(timer => {
-                if (!timer || timer.isPaused) return timer;
-                // Salva o tempo decorrido até agora
-                const currentElapsed = timer.pausedSeconds + Math.floor((Date.now() - timer.startTime.getTime()) / 1000);
+                if (!timer) return timer;
                 return {
                     ...timer,
                     isPaused: true,
@@ -97,9 +111,19 @@ function createTimerStore() {
             });
         },
 
-        resume() {
+        async resume() {
+            const currentTimer = get({ subscribe });
+            if (!currentTimer || !currentTimer.isPaused) return;
+
+            // Start a new backend session
+            try {
+                await timersAPI.start(currentTimer.habitId);
+            } catch (e) {
+                console.error('Failed to resume timer:', e);
+            }
+
             update(timer => {
-                if (!timer || !timer.isPaused) return timer;
+                if (!timer) return timer;
                 return {
                     ...timer,
                     isPaused: false,

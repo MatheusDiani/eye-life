@@ -92,11 +92,11 @@
         await timer.start(habit.id, habit.time_spent_today || 0);
     }
 
-    function handlePauseResume() {
+    async function handlePauseResume() {
         if ($timer?.isPaused) {
-            timer.resume();
+            await timer.resume();
         } else {
-            timer.pause();
+            await timer.pause();
         }
     }
 

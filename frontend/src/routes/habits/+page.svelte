@@ -82,11 +82,11 @@
         await timer.start(habit.id);
     }
 
-    function handlePauseResume() {
+    async function handlePauseResume() {
         if ($timer?.isPaused) {
-            timer.resume();
+            await timer.resume();
         } else {
-            timer.pause();
+            await timer.pause();
         }
     }
 
