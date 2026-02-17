@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 // ==================== Types ====================
 
@@ -122,14 +122,29 @@ export interface DailyProgress {
 
 // ==================== API Functions ====================
 
+function getAuthHeaders(): Record<string, string> {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('eye_life_token') : null;
+    return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 async function fetchAPI<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE}${endpoint}`, {
         ...options,
         headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeaders(),
             ...options?.headers,
         },
     });
+
+    if (response.status === 401) {
+        // Token expired or invalid, redirect to login
+        if (typeof window !== 'undefined') {
+            localStorage.removeItem('eye_life_token');
+            window.location.href = '/login';
+        }
+        throw new Error('Sessão expirada. Faça login novamente.');
+    }
 
     if (!response.ok) {
         const error = await response.json().catch(() => ({ detail: 'Unknown error' }));

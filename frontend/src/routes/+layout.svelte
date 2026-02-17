@@ -1,21 +1,36 @@
 <script lang="ts">
   import "../app.css";
   import { onMount } from "svelte";
+  import { page } from "$app/stores";
+  import { goto } from "$app/navigation";
   import { theme, themes, type ThemeName } from "$lib/stores/theme";
   import { settingsAPI } from "$lib/api/client";
 
   let { children } = $props();
   let showThemeMenu = $state(false);
   let carryoverEnabled = $state(false);
+  let isAuthenticated = $state(false);
+  let isLoginPage = $derived($page.url.pathname === "/login");
 
   onMount(async () => {
     theme.init();
+
+    // Check auth
+    const token = localStorage.getItem("eye_life_token");
+    if (!token && !isLoginPage) {
+      goto("/login");
+      return;
+    }
+    isAuthenticated = !!token;
+
     // Load carryover setting
-    try {
-      const settings = await settingsAPI.get();
-      carryoverEnabled = settings.carryover_enabled;
-    } catch (e) {
-      // Silently fail
+    if (isAuthenticated) {
+      try {
+        const settings = await settingsAPI.get();
+        carryoverEnabled = settings.carryover_enabled;
+      } catch (e) {
+        // Silently fail
+      }
     }
   });
 
@@ -43,108 +58,122 @@
       carryoverEnabled = !carryoverEnabled; // Revert on error
     }
   }
+
+  function logout() {
+    localStorage.removeItem("eye_life_token");
+    goto("/login");
+  }
 </script>
 
 <svelte:window onclick={closeThemeMenu} />
 
-<div class="app-container">
-  <nav class="sidebar">
-    <div class="logo">
-      <span class="logo-icon">◉</span>
-      <span class="logo-text">Eye Life</span>
-    </div>
-
-    <ul class="nav-links">
-      <li>
-        <a href="/" class="nav-link">
-          <span class="nav-icon">📊</span>
-          <span>Início</span>
-        </a>
-      </li>
-      <li>
-        <a href="/habits" class="nav-link">
-          <span class="nav-icon">✓</span>
-          <span>Hábitos</span>
-        </a>
-      </li>
-      <li>
-        <a href="/notes" class="nav-link">
-          <span class="nav-icon">📝</span>
-          <span>Notas</span>
-        </a>
-      </li>
-      <li>
-        <a href="/stats" class="nav-link">
-          <span class="nav-icon">📈</span>
-          <span>Estatísticas</span>
-        </a>
-      </li>
-    </ul>
-
-    <div class="sidebar-footer">
-      <p class="text-muted text-center footer-date">
-        {new Date().toLocaleDateString("pt-BR", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        })}
-      </p>
-
-      <!-- Settings Button -->
-      <div class="settings-container">
-        <button
-          class="settings-btn"
-          onclick={toggleThemeMenu}
-          title="Configurações"
-        >
-          ⚙️
-        </button>
-
-        {#if showThemeMenu}
-          <div class="theme-menu animate-slide-up">
-            <h4>Tema</h4>
-            <div class="theme-options">
-              {#each themes as t}
-                <button
-                  class="theme-option"
-                  class:active={$theme === t.name}
-                  onclick={() => selectTheme(t.name)}
-                >
-                  <span class="theme-emoji">{t.emoji}</span>
-                  <span class="theme-label">{t.label}</span>
-                  {#if $theme === t.name}
-                    <span class="theme-check">✓</span>
-                  {/if}
-                </button>
-              {/each}
-            </div>
-
-            <hr class="settings-divider" />
-
-            <h4>Cronômetro</h4>
-            <label class="toggle-option">
-              <span class="toggle-label">Repassar tempo excedente</span>
-              <button
-                class="toggle-switch"
-                class:active={carryoverEnabled}
-                onclick={toggleCarryover}
-              >
-                <span class="toggle-slider"></span>
-              </button>
-            </label>
-            <p class="toggle-hint">
-              Tempo além do estimado é creditado no próximo dia
-            </p>
-          </div>
-        {/if}
+{#if isLoginPage || !isAuthenticated}
+  {@render children()}
+{:else}
+  <div class="app-container">
+    <nav class="sidebar">
+      <div class="logo">
+        <span class="logo-icon">◉</span>
+        <span class="logo-text">Eye Life</span>
       </div>
-    </div>
-  </nav>
 
-  <main class="main-content">
-    {@render children()}
-  </main>
-</div>
+      <ul class="nav-links">
+        <li>
+          <a href="/" class="nav-link">
+            <span class="nav-icon">📊</span>
+            <span>Início</span>
+          </a>
+        </li>
+        <li>
+          <a href="/habits" class="nav-link">
+            <span class="nav-icon">✓</span>
+            <span>Hábitos</span>
+          </a>
+        </li>
+        <li>
+          <a href="/notes" class="nav-link">
+            <span class="nav-icon">📝</span>
+            <span>Notas</span>
+          </a>
+        </li>
+        <li>
+          <a href="/stats" class="nav-link">
+            <span class="nav-icon">📈</span>
+            <span>Estatísticas</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar-footer">
+        <p class="text-muted text-center footer-date">
+          {new Date().toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+          })}
+        </p>
+
+        <!-- Settings Button -->
+        <div class="settings-container">
+          <button
+            class="settings-btn"
+            onclick={toggleThemeMenu}
+            title="Configurações"
+          >
+            ⚙️
+          </button>
+
+          {#if showThemeMenu}
+            <div class="theme-menu animate-slide-up">
+              <h4>Tema</h4>
+              <div class="theme-options">
+                {#each themes as t}
+                  <button
+                    class="theme-option"
+                    class:active={$theme === t.name}
+                    onclick={() => selectTheme(t.name)}
+                  >
+                    <span class="theme-emoji">{t.emoji}</span>
+                    <span class="theme-label">{t.label}</span>
+                    {#if $theme === t.name}
+                      <span class="theme-check">✓</span>
+                    {/if}
+                  </button>
+                {/each}
+              </div>
+
+              <hr class="settings-divider" />
+
+              <h4>Cronômetro</h4>
+              <label class="toggle-option">
+                <span class="toggle-label">Repassar tempo excedente</span>
+                <button
+                  class="toggle-switch"
+                  class:active={carryoverEnabled}
+                  onclick={toggleCarryover}
+                  title="Alternar repasse de tempo"
+                >
+                  <span class="toggle-slider"></span>
+                </button>
+              </label>
+              <p class="toggle-hint">
+                Tempo além do estimado é creditado no próximo dia
+              </p>
+            </div>
+          {/if}
+        </div>
+
+        <button class="logout-btn" onclick={logout} title="Sair">
+          🚪 Sair
+        </button>
+      </div>
+    </nav>
+
+    <main class="main-content">
+      {@render children()}
+    </main>
+  </div>
+{/if}
 
 <style>
   .app-container {
@@ -403,5 +432,23 @@
     color: var(--color-text-muted);
     margin-top: var(--spacing-1);
     line-height: 1.3;
+  }
+
+  .logout-btn {
+    width: 100%;
+    padding: var(--spacing-2) var(--spacing-3);
+    margin-top: var(--spacing-3);
+    background: none;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .logout-btn:hover {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
   }
 </style>

@@ -7,8 +7,9 @@ from typing import List
 from database import get_db
 from models import Habit, HabitLog, Note, TimerSession
 from schemas import DashboardStats, DailyProgress
+from auth import get_current_user
 
-router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
+router = APIRouter(prefix="/api/dashboard", tags=["dashboard"], dependencies=[Depends(get_current_user)])
 
 
 @router.get("/stats", response_model=DashboardStats)

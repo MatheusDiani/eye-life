@@ -11,8 +11,9 @@ from schemas import (
     HabitCreate, HabitUpdate, HabitResponse, HabitWithStats,
     HabitLogCreate, HabitLogResponse
 )
+from auth import get_current_user
 
-router = APIRouter(prefix="/api/habits", tags=["habits"])
+router = APIRouter(prefix="/api/habits", tags=["habits"], dependencies=[Depends(get_current_user)])
 
 
 def calculate_streak(db: Session, habit_id: int) -> int:

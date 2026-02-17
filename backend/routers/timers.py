@@ -7,8 +7,9 @@ from typing import Optional
 from database import get_db
 from models import Habit, HabitLog, TimerSession, AppSettings
 from schemas import TimerStart, TimerStop, TimerResponse, TimerStatus
+from auth import get_current_user
 
-router = APIRouter(prefix="/api/timers", tags=["timers"])
+router = APIRouter(prefix="/api/timers", tags=["timers"], dependencies=[Depends(get_current_user)])
 
 
 def get_setting(db: Session, key: str, default: str = "") -> str:
