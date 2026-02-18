@@ -90,6 +90,7 @@ function createTimerStore() {
             // Calculate elapsed time
             const currentElapsed = currentTimer.pausedSeconds + Math.floor((Date.now() - currentTimer.startTime.getTime()) / 1000);
 
+            loading.set(true);
             // Stop the backend timer to persist the time
             try {
                 await timersAPI.stop(currentTimer.habitId);
@@ -98,6 +99,8 @@ function createTimerStore() {
             } catch (e) {
                 // Even if backend fails, update local state
                 console.error('Failed to persist pause:', e);
+            } finally {
+                loading.set(false);
             }
 
             update(timer => {
@@ -115,11 +118,14 @@ function createTimerStore() {
             const currentTimer = get({ subscribe });
             if (!currentTimer || !currentTimer.isPaused) return;
 
+            loading.set(true);
             // Start a new backend session
             try {
                 await timersAPI.start(currentTimer.habitId);
             } catch (e) {
                 console.error('Failed to resume timer:', e);
+            } finally {
+                loading.set(false);
             }
 
             update(timer => {

@@ -15,6 +15,8 @@
     import { timer, formatTime } from "$lib/stores/timer";
     import type { Habit } from "$lib/api/client";
 
+    const timerLoading = timer.loading;
+
     let stats: DashboardStats | null = $state(null);
     let progress: DailyProgress[] = $state([]);
     let loading = $state(true);
@@ -259,14 +261,22 @@
                                     {#if isTimerRunning(habit.id)}
                                         <button
                                             class="btn btn-sm"
-                                            class:btn-warning={!$timer?.isPaused}
-                                            class:btn-success={$timer?.isPaused}
+                                            class:btn-warning={!$timer?.isPaused &&
+                                                !$timerLoading}
+                                            class:btn-success={$timer?.isPaused &&
+                                                !$timerLoading}
+                                            disabled={$timerLoading}
                                             onclick={(e) => {
                                                 e.stopPropagation();
                                                 handlePauseResume();
                                             }}
                                         >
-                                            {$timer?.isPaused ? "▶" : "⏸"}
+                                            {#if $timerLoading}
+                                                <span class="btn-spinner"
+                                                ></span>
+                                            {:else}
+                                                {$timer?.isPaused ? "▶" : "⏸"}
+                                            {/if}
                                         </button>
                                     {:else}
                                         <button
@@ -603,5 +613,15 @@
         .chart-bars {
             height: 140px;
         }
+    }
+
+    .btn-spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        border: 2px solid var(--color-text-muted);
+        border-top-color: transparent;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
     }
 </style>
