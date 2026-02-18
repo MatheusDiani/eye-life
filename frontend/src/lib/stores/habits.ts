@@ -29,13 +29,9 @@ function createHabitsStore() {
             error.set(null);
             try {
                 const newHabit = await habitsAPI.create(habit);
-                update(habits => [...habits, {
-                    ...newHabit,
-                    completed_today: false,
-                    time_spent_today: 0,
-                    streak: 0,
-                    is_scheduled_today: true
-                }]);
+                // Re-fetch all habits to get complete data with computed fields
+                const freshHabits = await habitsAPI.getAll(false);
+                set(freshHabits);
                 return newHabit;
             } catch (e) {
                 error.set(e instanceof Error ? e.message : 'Failed to create habit');
