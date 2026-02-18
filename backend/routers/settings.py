@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from database import get_db
-from models import AppSettings
+from models import AppSettings, Habit, HabitLog, Note, TimerSession
 from schemas import SettingsResponse, SettingsUpdate
 from auth import get_current_user
 
@@ -42,3 +42,17 @@ def update_settings(settings: SettingsUpdate, db: Session = Depends(get_db)):
         set_setting(db, "carryover_enabled", str(settings.carryover_enabled).lower())
     
     return get_settings(db)
+
+
+@router.delete("/reset-all")
+def reset_all_data(db: Session = Depends(get_db)):
+    """Delete ALL user data: habits, logs, notes, timer sessions, and settings."""
+    # Delete in correct order (children first due to foreign keys)
+    db.query(TimerSession).delete()
+    db.query(HabitLog).delete()
+    db.query(Habit).delete()
+    db.query(Note).delete()
+    db.query(AppSettings).delete()
+    db.commit()
+    return {"message": "Todos os dados foram apagados com sucesso."}
+

@@ -9,6 +9,7 @@
   let { children } = $props();
   let showThemeMenu = $state(false);
   let carryoverEnabled = $state(false);
+  let resetConfirmStep = $state(0); // 0=idle, 1=confirm, 2=executing
   let isAuthenticated = $state(false);
   let isLoginPage = $derived($page.url.pathname === "/login");
 
@@ -62,6 +63,29 @@
   function logout() {
     localStorage.removeItem("eye_life_token");
     goto("/login");
+  }
+
+  async function handleResetAll() {
+    if (resetConfirmStep === 0) {
+      resetConfirmStep = 1;
+      return;
+    }
+    if (resetConfirmStep === 1) {
+      resetConfirmStep = 2;
+      try {
+        await settingsAPI.resetAll();
+        showThemeMenu = false;
+        resetConfirmStep = 0;
+        window.location.href = "/";
+      } catch (e) {
+        resetConfirmStep = 0;
+        alert("Erro ao resetar dados.");
+      }
+    }
+  }
+
+  function cancelReset() {
+    resetConfirmStep = 0;
   }
 </script>
 
@@ -159,6 +183,29 @@
               <p class="toggle-hint">
                 Tempo além do estimado é creditado no próximo dia
               </p>
+
+              <hr class="settings-divider" />
+
+              <h4>Zona de Perigo</h4>
+              {#if resetConfirmStep === 0}
+                <button class="btn-danger-reset" onclick={handleResetAll}>
+                  🗑️ Resetar todos os dados
+                </button>
+              {:else if resetConfirmStep === 1}
+                <p class="reset-warning">
+                  Tem certeza? Isso vai apagar TUDO (hábitos, notas, sessões).
+                </p>
+                <div class="reset-confirm-buttons">
+                  <button class="btn-danger-confirm" onclick={handleResetAll}>
+                    Sim, apagar tudo
+                  </button>
+                  <button class="btn-cancel" onclick={cancelReset}>
+                    Cancelar
+                  </button>
+                </div>
+              {:else}
+                <p class="reset-warning">Apagando...</p>
+              {/if}
             </div>
           {/if}
         </div>
@@ -450,5 +497,57 @@
   .logout-btn:hover {
     color: var(--color-danger);
     border-color: var(--color-danger);
+  }
+
+  .btn-danger-reset {
+    width: 100%;
+    padding: var(--spacing-2) var(--spacing-3);
+    background: none;
+    border: 1px solid var(--color-danger);
+    border-radius: var(--radius-md);
+    color: var(--color-danger);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .btn-danger-reset:hover {
+    background: var(--color-danger);
+    color: white;
+  }
+
+  .reset-warning {
+    font-size: var(--font-size-sm);
+    color: var(--color-danger);
+    margin-bottom: var(--spacing-2);
+    font-weight: var(--font-weight-medium);
+  }
+
+  .reset-confirm-buttons {
+    display: flex;
+    gap: var(--spacing-2);
+  }
+
+  .btn-danger-confirm {
+    flex: 1;
+    padding: var(--spacing-2);
+    background: var(--color-danger);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .btn-cancel {
+    flex: 1;
+    padding: var(--spacing-2);
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
   }
 </style>

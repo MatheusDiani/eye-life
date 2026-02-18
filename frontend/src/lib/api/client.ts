@@ -296,4 +296,9 @@ export const settingsAPI = {
             method: 'PUT',
             body: JSON.stringify(settings),
         }),
+
+    resetAll: () =>
+        fetchAPI<{ message: string }>('/settings/reset-all', {
+            method: 'DELETE',
+        }),
 };
