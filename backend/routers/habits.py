@@ -399,8 +399,7 @@ def update_habit_log_by_date(
     
     if log:
         log.completed = completed
-        if time_spent_seconds > 0:
-            log.time_spent_seconds = time_spent_seconds
+        log.time_spent_seconds = time_spent_seconds
     else:
         log = HabitLog(
             habit_id=habit_id,

@@ -124,7 +124,7 @@ function createHabitsStore() {
                 const habit = currentHabits.find(h => h.id === id);
                 const isCompleted = habit?.completed_today || false;
 
-                // Update locally first
+                // Update locally first for immediate feedback
                 update(habits =>
                     habits.map(h =>
                         h.id === id ? { ...h, time_spent_today: seconds } : h
@@ -132,6 +132,9 @@ function createHabitsStore() {
                 );
                 // Persist to backend
                 await habitsAPI.updateByDate(today, id, isCompleted, seconds);
+                // Re-fetch to confirm persisted state
+                const freshHabits = await habitsAPI.getAll(false);
+                set(freshHabits);
             } catch (e) {
                 error.set(e instanceof Error ? e.message : 'Failed to update time');
             }
