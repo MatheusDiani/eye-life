@@ -145,18 +145,18 @@ function createTimerStore() {
             loading.set(true);
             error.set(null);
             try {
-                const result = await timersAPI.stop(currentTimer.habitId);
-                stopTicking();
-
-                // Add session duration to habit's total time spent
-                habits.addTimeSpent(currentTimer.habitId, result.duration_seconds);
-
-                set(null);
-                return result;
+                // If paused, the backend session is already stopped, skip the API call
+                if (!currentTimer.isPaused) {
+                    const result = await timersAPI.stop(currentTimer.habitId);
+                    // Add session duration to habit's total time spent
+                    habits.addTimeSpent(currentTimer.habitId, result.duration_seconds);
+                }
             } catch (e) {
-                error.set(e instanceof Error ? e.message : 'Failed to stop timer');
-                throw e;
+                // Even if backend fails, we still want to clear the local timer
+                console.error('Failed to stop timer on backend:', e);
             } finally {
+                stopTicking();
+                set(null);
                 loading.set(false);
             }
         },
