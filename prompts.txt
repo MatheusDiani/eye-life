@@ -1,0 +1,5 @@
+Quando eu clico para concluir um habito ele fica marcado como concluido, mas o tempo gasto no cronometro não fica exibido na tela.
+
+Eu quero poder editar um hábito e escolher se ele é diário ou se repete em dias específicos da semana ou se é um hábito somente daquele dia.
+
+Eu quero q no calendario da aba estatistica apareça os habitos somente a partir do dia que foi dado seu inicio e tambem quero q apareça o tempo do cronometro que foi gasto naquele habito no dia.

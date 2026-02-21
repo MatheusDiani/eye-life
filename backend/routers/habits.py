@@ -266,9 +266,10 @@ def log_habit(habit_id: int, log: HabitLogCreate, db: Session = Depends(get_db))
     ).first()
 
     if existing_log:
-        # Update existing log
+        # Update existing log - preserve time if not explicitly provided
         existing_log.completed = log.completed
-        existing_log.time_spent_seconds = log.time_spent_seconds
+        if log.time_spent_seconds > 0:
+            existing_log.time_spent_seconds = log.time_spent_seconds
         db.commit()
         db.refresh(existing_log)
         return existing_log
@@ -345,7 +346,12 @@ def get_habits_by_date(date_str: str, db: Session = Depends(get_db)):
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
     
-    habits = db.query(Habit).filter(Habit.is_active == True, Habit.is_archived == False).all()
+    from sqlalchemy import or_
+    habits = db.query(Habit).filter(
+        Habit.is_active == True,
+        Habit.is_archived == False,
+        or_(Habit.start_date == None, Habit.start_date <= check_date)
+    ).all()
     
     result = []
     for habit in habits:

@@ -8,6 +8,7 @@
     let editName = $state("");
     let editDesc = $state("");
     let editTimer = $state(false);
+    let editRepeatable = $state(true);
     let editEstimatedHours = $state(0);
     let editEstimatedMinutes = $state(30);
     let editDays = $state<number[]>([]);
@@ -31,6 +32,7 @@
         editingHabit = habit;
         editName = habit.name;
         editDesc = habit.description || "";
+        editRepeatable = habit.is_repeatable;
         editTimer = habit.has_timer;
         const estimatedSeconds = habit.estimated_duration_seconds || 1800;
         editEstimatedHours = Math.floor(estimatedSeconds / 3600);
@@ -50,11 +52,15 @@
             await habits.updateHabit(editingHabit.id, {
                 name: editName.trim(),
                 description: editDesc.trim() || undefined,
+                is_repeatable: editRepeatable,
                 has_timer: editTimer,
                 estimated_duration_seconds: editTimer
                     ? editEstimatedHours * 3600 + editEstimatedMinutes * 60
                     : null,
-                schedule_days: editDays.length > 0 ? editDays : undefined,
+                schedule_days:
+                    editRepeatable && editDays.length > 0
+                        ? editDays
+                        : undefined,
             });
             // Refresh habits to get updated data from server
             await habits.fetch(true);
@@ -148,26 +154,37 @@
                 ></textarea>
             </div>
 
-            <div class="form-group">
-                <label class="label">Dias da semana</label>
-                <div class="days-selector">
-                    {#each weekDays as day}
-                        <button
-                            type="button"
-                            class="day-btn"
-                            class:selected={editDays.includes(day.value)}
-                            onclick={() => toggleDay(day.value)}
-                        >
-                            {day.label}
-                        </button>
-                    {/each}
+            <label class="checkbox-wrapper">
+                <input
+                    type="checkbox"
+                    class="checkbox"
+                    bind:checked={editRepeatable}
+                />
+                <span>Repetível diariamente</span>
+            </label>
+
+            {#if editRepeatable}
+                <div class="form-group">
+                    <label class="label">Dias da semana</label>
+                    <div class="days-selector">
+                        {#each weekDays as day}
+                            <button
+                                type="button"
+                                class="day-btn"
+                                class:selected={editDays.includes(day.value)}
+                                onclick={() => toggleDay(day.value)}
+                            >
+                                {day.label}
+                            </button>
+                        {/each}
+                    </div>
+                    <span class="text-muted text-sm">
+                        {editDays.length === 0
+                            ? "Todos os dias"
+                            : "Dias selecionados"}
+                    </span>
                 </div>
-                <span class="text-muted text-sm">
-                    {editDays.length === 0
-                        ? "Todos os dias"
-                        : "Dias selecionados"}
-                </span>
-            </div>
+            {/if}
 
             <label class="checkbox-wrapper">
                 <input

@@ -26,8 +26,8 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         HabitLog.completed == True
     ).count()
 
-    # Completion percentage
-    completion_percentage = (completed_today / total_habits * 100) if total_habits > 0 else 0
+    # Completion percentage (capped at 100%)
+    completion_percentage = min((completed_today / total_habits * 100), 100) if total_habits > 0 else 0
 
     # Total time today (from timer sessions)
     total_time = db.query(func.sum(TimerSession.duration_seconds)).filter(
@@ -46,8 +46,7 @@ def get_dashboard_stats(db: Session = Depends(get_db)):
         ).count()
 
         day_total = db.query(Habit).filter(
-            Habit.is_active == True,
-            Habit.is_repeatable == True
+            Habit.is_active == True
         ).count()
 
         if day_total > 0 and day_completed >= day_total:
@@ -80,8 +79,7 @@ def get_daily_progress(days: int = 7, db: Session = Depends(get_db)):
 
         # Get total active habits on this day
         total = db.query(Habit).filter(
-            Habit.is_active == True,
-            Habit.is_repeatable == True
+            Habit.is_active == True
         ).count()
 
         # Get completed habits on this day
@@ -90,7 +88,7 @@ def get_daily_progress(days: int = 7, db: Session = Depends(get_db)):
             HabitLog.completed == True
         ).count()
 
-        percentage = (completed / total * 100) if total > 0 else 0
+        percentage = min((completed / total * 100), 100) if total > 0 else 0
 
         result.append(DailyProgress(
             date=check_date,

@@ -253,10 +253,18 @@
                                     >{habit.habit_name}</span
                                 >
                                 {#if habit.has_timer}
-                                    <span class="badge badge-sm">
+                                    <span
+                                        class="badge badge-sm"
+                                        class:badge-success={habit.estimated_duration_seconds &&
+                                            habit.time_spent_seconds >=
+                                                habit.estimated_duration_seconds}
+                                    >
                                         ⏱ {formatTime(
                                             habit.time_spent_seconds,
-                                        )}
+                                        )}{#if habit.estimated_duration_seconds}
+                                            / {formatTime(
+                                                habit.estimated_duration_seconds,
+                                            )}{/if}
                                     </span>
                                 {/if}
                                 {#if !habit.is_scheduled}
