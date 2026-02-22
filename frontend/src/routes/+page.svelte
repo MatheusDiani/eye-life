@@ -228,14 +228,76 @@
             </div>
         </div>
 
-        <!-- Today's Habits Section -->
+        <!-- Habits Section (Today or Selected Day) -->
         <section class="section">
             <div class="section-header">
-                <h2>Hábitos de Hoje</h2>
-                <a href="/habits" class="btn btn-sm">Ver todos →</a>
+                {#if selectedDay && !isToday(selectedDay)}
+                    <h2>{formatSelectedDate(selectedDay)}</h2>
+                    <button
+                        class="btn btn-sm"
+                        onclick={() => {
+                            selectedDay = null;
+                            selectedDayHabits = [];
+                        }}>← Voltar para hoje</button
+                    >
+                {:else}
+                    <h2>Hábitos de Hoje</h2>
+                    <a href="/habits" class="btn btn-sm">Ver todos →</a>
+                {/if}
             </div>
 
-            {#if $todayHabits.length === 0}
+            {#if selectedDay && !isToday(selectedDay)}
+                {#if loadingDayHabits}
+                    <div
+                        class="loading-state"
+                        style="padding: var(--spacing-8);"
+                    >
+                        <div class="spinner"></div>
+                        <p>Carregando...</p>
+                    </div>
+                {:else if selectedDayHabits.length === 0}
+                    <div class="card empty-habits">
+                        <p class="text-muted">
+                            Nenhum hábito encontrado para este dia
+                        </p>
+                    </div>
+                {:else}
+                    <div class="habits-list">
+                        {#each selectedDayHabits as habit (habit.habit_id)}
+                            <div
+                                class="card habit-card"
+                                class:completed={habit.completed}
+                            >
+                                <div class="habit-main">
+                                    <span class="day-habit-check"
+                                        >{habit.completed ? "✓" : "—"}</span
+                                    >
+                                    <div class="habit-info">
+                                        <span class="habit-name"
+                                            >{habit.habit_name}</span
+                                        >
+                                        {#if habit.has_timer}
+                                            <span
+                                                class="badge badge-sm"
+                                                class:badge-success={habit.estimated_duration_seconds &&
+                                                    habit.time_spent_seconds >=
+                                                        habit.estimated_duration_seconds}
+                                            >
+                                                ⏱ {formatTime(
+                                                    habit.time_spent_seconds,
+                                                )}{#if habit.estimated_duration_seconds}
+                                                    / {formatTime(
+                                                        habit.estimated_duration_seconds,
+                                                    )}{/if}
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
+            {:else if $todayHabits.length === 0}
                 <div class="card empty-habits">
                     <p class="text-muted">Nenhum hábito para hoje</p>
                     <a href="/habits" class="btn btn-primary">Criar hábito</a>
@@ -368,62 +430,6 @@
                 </div>
             </div>
         </section>
-
-        {#if selectedDay}
-            <section class="section selected-day-detail animate-fade-in">
-                <div class="card">
-                    <h3>{formatSelectedDate(selectedDay)}</h3>
-                    {#if loadingDayHabits}
-                        <div
-                            class="loading-state"
-                            style="padding: var(--spacing-4);"
-                        >
-                            <div class="spinner"></div>
-                        </div>
-                    {:else if selectedDayHabits.length === 0}
-                        <p
-                            class="text-muted text-center"
-                            style="padding: var(--spacing-4);"
-                        >
-                            Nenhum hábito encontrado para este dia
-                        </p>
-                    {:else}
-                        <div class="day-habits-list">
-                            {#each selectedDayHabits as habit (habit.habit_id)}
-                                <div
-                                    class="day-habit-item"
-                                    class:completed={habit.completed}
-                                >
-                                    <span class="day-habit-check"
-                                        >{habit.completed ? "✓" : "—"}</span
-                                    >
-                                    <div class="day-habit-info">
-                                        <span class="day-habit-name"
-                                            >{habit.habit_name}</span
-                                        >
-                                        {#if habit.has_timer}
-                                            <span
-                                                class="badge badge-sm"
-                                                class:badge-success={habit.estimated_duration_seconds &&
-                                                    habit.time_spent_seconds >=
-                                                        habit.estimated_duration_seconds}
-                                            >
-                                                ⏱ {formatTime(
-                                                    habit.time_spent_seconds,
-                                                )}{#if habit.estimated_duration_seconds}
-                                                    / {formatTime(
-                                                        habit.estimated_duration_seconds,
-                                                    )}{/if}
-                                            </span>
-                                        {/if}
-                                    </div>
-                                </div>
-                            {/each}
-                        </div>
-                    {/if}
-                </div>
-            </section>
-        {/if}
 
         <!-- Quick Actions -->
         <section class="section">
@@ -653,27 +659,7 @@
         font-weight: var(--font-weight-semibold);
     }
 
-    /* Day habits detail */
-    .day-habits-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-2);
-        padding: var(--spacing-3) 0;
-    }
-
-    .day-habit-item {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-3);
-        padding: var(--spacing-2) var(--spacing-3);
-        border-radius: var(--radius-md);
-        background: var(--color-surface);
-    }
-
-    .day-habit-item.completed {
-        background: var(--color-success-muted);
-    }
-
+    /* Day habit check icon */
     .day-habit-check {
         font-weight: var(--font-weight-bold);
         font-size: var(--font-size-sm);
@@ -682,21 +668,8 @@
         text-align: center;
     }
 
-    .day-habit-item.completed .day-habit-check {
+    .habit-card.completed .day-habit-check {
         color: var(--color-success);
-    }
-
-    .day-habit-info {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-2);
-        flex: 1;
-        flex-wrap: wrap;
-    }
-
-    .day-habit-name {
-        font-weight: var(--font-weight-medium);
-        font-size: var(--font-size-sm);
     }
 
     /* Quick Actions */
