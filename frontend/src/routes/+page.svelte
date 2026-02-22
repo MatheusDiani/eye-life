@@ -2,8 +2,10 @@
     import { onMount } from "svelte";
     import {
         dashboardAPI,
+        habitsAPI,
         type DashboardStats,
         type DailyProgress,
+        type HabitDayLog,
     } from "$lib/api/client";
     import {
         todayHabits,
@@ -21,6 +23,11 @@
     let progress: DailyProgress[] = $state([]);
     let loading = $state(true);
     let error = $state<string | null>(null);
+
+    // Weekly bar click state
+    let selectedDay = $state<string | null>(null);
+    let selectedDayHabits = $state<HabitDayLog[]>([]);
+    let loadingDayHabits = $state(false);
 
     // Reactive computed values from habits store
     let currentStreak = $derived(calculateStreak());
@@ -127,6 +134,32 @@
             $todayHabits.length > 0 &&
             $todayHabits.every((h) => h.completed_today)
         );
+    }
+
+    async function selectProgressDay(dateStr: string) {
+        if (selectedDay === dateStr) {
+            selectedDay = null;
+            selectedDayHabits = [];
+            return;
+        }
+        selectedDay = dateStr;
+        loadingDayHabits = true;
+        try {
+            selectedDayHabits = await habitsAPI.getByDate(dateStr);
+        } catch (e) {
+            selectedDayHabits = [];
+        } finally {
+            loadingDayHabits = false;
+        }
+    }
+
+    function formatSelectedDate(dateStr: string): string {
+        const date = new Date(dateStr + "T12:00:00");
+        return date.toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+        });
     }
 </script>
 
@@ -307,6 +340,13 @@
                         <div
                             class="chart-bar-container"
                             class:today={isToday(day.date)}
+                            class:selected-bar={selectedDay === day.date}
+                            onclick={() => selectProgressDay(day.date)}
+                            role="button"
+                            tabindex="0"
+                            onkeydown={(e) =>
+                                e.key === "Enter" &&
+                                selectProgressDay(day.date)}
                         >
                             <div
                                 class="chart-bar"
@@ -328,6 +368,62 @@
                 </div>
             </div>
         </section>
+
+        {#if selectedDay}
+            <section class="section selected-day-detail animate-fade-in">
+                <div class="card">
+                    <h3>{formatSelectedDate(selectedDay)}</h3>
+                    {#if loadingDayHabits}
+                        <div
+                            class="loading-state"
+                            style="padding: var(--spacing-4);"
+                        >
+                            <div class="spinner"></div>
+                        </div>
+                    {:else if selectedDayHabits.length === 0}
+                        <p
+                            class="text-muted text-center"
+                            style="padding: var(--spacing-4);"
+                        >
+                            Nenhum hábito encontrado para este dia
+                        </p>
+                    {:else}
+                        <div class="day-habits-list">
+                            {#each selectedDayHabits as habit (habit.habit_id)}
+                                <div
+                                    class="day-habit-item"
+                                    class:completed={habit.completed}
+                                >
+                                    <span class="day-habit-check"
+                                        >{habit.completed ? "✓" : "—"}</span
+                                    >
+                                    <div class="day-habit-info">
+                                        <span class="day-habit-name"
+                                            >{habit.habit_name}</span
+                                        >
+                                        {#if habit.has_timer}
+                                            <span
+                                                class="badge badge-sm"
+                                                class:badge-success={habit.estimated_duration_seconds &&
+                                                    habit.time_spent_seconds >=
+                                                        habit.estimated_duration_seconds}
+                                            >
+                                                ⏱ {formatTime(
+                                                    habit.time_spent_seconds,
+                                                )}{#if habit.estimated_duration_seconds}
+                                                    / {formatTime(
+                                                        habit.estimated_duration_seconds,
+                                                    )}{/if}
+                                            </span>
+                                        {/if}
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
+            </section>
+        {/if}
 
         <!-- Quick Actions -->
         <section class="section">
@@ -530,6 +626,77 @@
         font-weight: var(--font-weight-bold);
         text-transform: uppercase;
         letter-spacing: 0.05em;
+    }
+
+    .chart-bar-container {
+        cursor: pointer;
+    }
+
+    .chart-bar-container:hover .chart-bar {
+        opacity: 0.8;
+    }
+
+    .chart-bar-container.selected-bar {
+        position: relative;
+    }
+
+    .chart-bar-container.selected-bar .chart-bar {
+        background: linear-gradient(
+            180deg,
+            var(--color-accent) 0%,
+            var(--color-surface-hover) 100%
+        );
+    }
+
+    .chart-bar-container.selected-bar .chart-label {
+        color: var(--color-accent);
+        font-weight: var(--font-weight-semibold);
+    }
+
+    /* Day habits detail */
+    .day-habits-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-2);
+        padding: var(--spacing-3) 0;
+    }
+
+    .day-habit-item {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-3);
+        padding: var(--spacing-2) var(--spacing-3);
+        border-radius: var(--radius-md);
+        background: var(--color-surface);
+    }
+
+    .day-habit-item.completed {
+        background: var(--color-success-muted);
+    }
+
+    .day-habit-check {
+        font-weight: var(--font-weight-bold);
+        font-size: var(--font-size-sm);
+        color: var(--color-text-muted);
+        width: 20px;
+        text-align: center;
+    }
+
+    .day-habit-item.completed .day-habit-check {
+        color: var(--color-success);
+    }
+
+    .day-habit-info {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-2);
+        flex: 1;
+        flex-wrap: wrap;
+    }
+
+    .day-habit-name {
+        font-weight: var(--font-weight-medium);
+        font-size: var(--font-size-sm);
     }
 
     /* Quick Actions */
